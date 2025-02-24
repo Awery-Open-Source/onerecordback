@@ -29,16 +29,17 @@ class AwbController extends AbstractController
     #[Route('/api/updateAwb', name: 'api_update_awb', methods: ['POST'])]
     public function updateAwb(Request $request):JsonResponse
     {
-        if (!empty($request->get('id'))) {
-            $setting = $this->em->getRepository(Awb::class)->findBy(['id' => $request->get('id')]);
+        $requestData = json_decode($request->getContent(), true);
+        if (!empty($requestData['id'])) {
+            $setting = $this->em->getRepository(Awb::class)->findBy(['id' => $requestData['id']]);
         } else {
             $setting = new Awb();
         }
         if (!empty($setting)) {
-            foreach ($request->request->all() as $key => $value) {
+            foreach ($requestData as $key => $value) {
                 $setting->{$key} = $value;
             }
-            if (empty($request->get('id'))) {
+            if (empty($requestData['id'])) {
                 $this->em->persist($setting);
             }
             $this->em->flush();
