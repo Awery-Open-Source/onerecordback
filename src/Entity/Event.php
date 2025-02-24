@@ -14,8 +14,8 @@ class Event
 
     #[ORM\Column(length: 255, nullable: true)]
     public ?string $one_record_id = null;
-    #[ORM\Column]
-    public ?int $message_id = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    public ?string $message_id = null;
 
     #[ORM\Column]
     public ?int $awb_id = null;
