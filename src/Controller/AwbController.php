@@ -2,7 +2,9 @@
 namespace App\Controller;
 
 use App\Entity\Awb;
+use App\Entity\Event;
 use App\Entity\PieceAwb;
+use App\Service\FSUMessageService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -85,5 +87,88 @@ class AwbController extends AbstractController
             $this->em->flush();
         }
         return new JsonResponse(['status' => 'success']);
+    }
+
+    #[Route('/api/updateEvent', name: 'api_update_event', methods: ['POST'])]
+    public function updateEvent(Request $request):JsonResponse
+    {
+        $requestData = json_decode($request->getContent(), true);
+        $Event = new Event();
+
+        foreach ($requestData as $key => $value) {
+            $Event->{$key} = $value;
+        }
+        $this->em->persist($Event);
+        $this->em->flush();
+        $id = $Event->getId();
+
+        $this->sendToRed($id);
+
+        return new JsonResponse(['id'=>$id]);
+    }
+
+    public function sendToRed($id_fsu_message = 0)
+    {
+        if (empty($id_fsu_message)) {
+            return false;
+        }
+        $fsuMessage = $this->em->getRepository(Event::class)->find($id_fsu_message);
+        $awb = $this->em->getRepository(Awb::class)->find($fsuMessage->awb_id);
+        $redServer = getenv('RED_SERVER', 'https://red.awery.com.ua');
+        $eventName = FSUMessageService::getDescOfStatus($fsuMessage->type) ?? 'Unknown';
+        $eventJson = <<<JSON
+        {
+          "eventCode": "$fsuMessage->type",
+          "eventFor": "$awb->one_record_url",
+          "eventLocation": "$fsuMessage->flight->origin",
+          "eventTimeType": "$fsuMessage->type",
+          "recordingOrganization": "$redServer",
+          "creationDate": "$fsuMessage->dateCreate",
+          "eventDate": "$fsuMessage->dateAction",
+          "eventName": "$eventName",
+          "partialEventIndicator": true
+        }
+        JSON;
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $awb->one_record_url."/logistics-events",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS =>$eventJson,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/ld+json',
+                'Accept: application/ld+json'
+            ),
+        ));
+//
+        $response = json_decode(curl_exec($curl));
+
+        $headers = $this->getHeaders($response);
+
+        $fsuMessage->one_record_id = $headers['Location'];
+        $this->em->flush();
+        return ['id'=>$fsuMessage->id];
+    }
+
+    private function getHeaders($response): array
+    {
+        $headers = array();
+        $header_text = substr($response, 0, strpos($response, "\r\n\r\n"));
+        foreach (explode("\r\n", $header_text) as $i => $line) {
+            if ($i === 0) {
+                $headers['http_code'] = $line;
+            } else {
+                list ($key, $value) = explode(': ', $line);
+
+                $headers[$key] = $value;
+            }
+        }
+        return $headers;
     }
 }

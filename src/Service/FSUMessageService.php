@@ -2,6 +2,10 @@
 
 namespace App\Service;
 
+use App\Entity\Awb;
+use App\Entity\Event;
+use Doctrine\ORM\EntityManagerInterface;
+
 class FSUMessageService
 {
     public string $status;
@@ -157,5 +161,20 @@ class FSUMessageService
             'SPC'=>'PICK UP FREIGHT BY CONSIGNEE (The consignee is picking up the freight directly from the respective Import Hub/Warehouse)',
             'OFD'=>'OUT FOR DELIVERY TO CONSIGNEE',
             'POD'=>'PROOF OF DELIVERY'];
+    }
+
+    public function generateFsu($event_id, EntityManagerInterface $entityManager)
+    {
+        $event = $entityManager->getRepository(Event::class)->find($event_id);
+        $awb = $entityManager->getRepository(Awb::class)->find($event->awb_id);
+        $totalPieces = $awb->total_pieces??0;//todo calculate total pieces
+        $dateAction = $event->dateAction->format('dMHi');
+        $text = <<<EOT
+FSU/12
+{$awb->awb_no}{$awb->origin}{$awb->destination}/T$totalPieces}K{$awb->weight}
+{$event->type}/{$dateAction}/{$event->location}/T{$event->qty}K{$event->weight}/$event->text}
+EOT;
+
+        return $text;
     }
 }

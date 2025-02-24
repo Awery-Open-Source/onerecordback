@@ -44,6 +44,10 @@ class MailService
 
         $entity = $repository->findOneBy(['awb_no' => $fsuMessage->awb->awb_no]);
 
+        if (empty($entity)) {
+            return;
+        }
+
         $eventFor = $entity->one_record_url;
 
         $statusDescr = FSUMessageService::getDescOfStatus($fsuMessage->status);
