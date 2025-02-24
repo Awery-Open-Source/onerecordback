@@ -1,0 +1,37 @@
+api_platform:
+    formats:
+        jsonld: [ 'application/ld+json' ]
+        json: [ 'application/json' ]
+        onerecord: [ 'application/ld+json' ]
+    title: Onerecord API Platform
+    version: 1.0.0
+    path_segment_name_generator: 'App\Operation\SingularPathSegmentNameGenerator'
+    defaults:
+        stateless: true
+        url_generation_strategy: 0
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    enable_swagger_ui: true  # Включить Swagger UI
+    enable_docs: true        # Включить документацию (по умолчанию: true)
+    enable_re_doc: false        # Включить документацию (по умолчанию: true)
+    show_webby: false
+    swagger:
+        versions: [ 3 ]        # Версия Swagger (по умолчанию: 3)
+#    swagger_ui_extra_configuration:
+#        display_operation_id: true  # Показывать ID операции
+#        display_request_duration: true  # Отображать длительность запросов
+#        doc_expansion: list      # Опции: 'list', 'full', 'none' (по умолчанию: 'list')
+#        filter: true             # Включить фильтр в UI
+#        show_common_extensions: true  # Отображать общие расширения
+    openapi:
+        contact:
+            name: "Tony"
+            url: "https://example.com"
+            email: "support@example.com"
+#        description: "Документация API для вашего проекта."
+        termsOfService: "https://example.com/terms"
+#        title: "Название вашего API"
+#        version: "1.0.0"
+        license:
+            name: "MIT"
+            url: "https://opensource.org/licenses/MIT"
