@@ -36,6 +36,9 @@ class PhpOneController extends AbstractController
         }
         if (!empty($setting)) {
             foreach ($requestData as $key => $value) {
+                if ($key == 'id') {
+                    continue;
+                }
                 $setting->{$key} = $value;
             }
             if (empty($requestData['id'])) {
