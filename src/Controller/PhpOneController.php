@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controller;
 
 use App\Entity\Settings;
@@ -12,6 +13,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 class PhpOneController extends AbstractController
 {
     private EntityManagerInterface $em;
+
     public function __construct(EntityManagerInterface $em, SerializerInterface $serializer)
     {
         $this->serializer = $serializer;
@@ -20,13 +22,13 @@ class PhpOneController extends AbstractController
     }
 
     #[Route('/api/getSubs', name: 'api_get_subs', methods: ['GET'])]
-    public function getSubs(Request $request):JsonResponse
+    public function getSubs(Request $request): JsonResponse
     {
         return new JsonResponse($this->em->getRepository(Settings::class)->findAll());
     }
 
     #[Route('/api/updateSub', name: 'api_update_sub', methods: ['POST'])]
-    public function updateSub(Request $request):JsonResponse
+    public function updateSub(Request $request): JsonResponse
     {
         $requestData = json_decode($request->getContent(), true);
         if (!empty($requestData['id'])) {
@@ -47,5 +49,14 @@ class PhpOneController extends AbstractController
             $this->em->flush();
         }
         return new JsonResponse(['status' => 'success']);
+    }
+
+    #[Route('/api/airports', name: 'api_airports', methods: ['GET'])]
+    public function airports(Request $request): JsonResponse
+    {
+        $list = file_get_contents(
+            'https://cdn.awery.com/assets/erp/lists/airports.json'
+        );
+        return new JsonResponse($list);
     }
 }
