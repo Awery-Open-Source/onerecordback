@@ -8,6 +8,7 @@ use Redis;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Google;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -21,23 +22,32 @@ class GMailController extends AbstractController
 
     /**
      * @throws Google\Exception
+     * @throws \Exception
      */
-    public function __construct()
+    public function __construct(RequestStack $requestStack)
     {
         $this->redis = new Redis();
         $this->redis->connect('localhost');
         $this->client = new Google\Client();
         $this->client->setAuthConfig(dirname(__DIR__, 2) . '/config/client.google.json');
         $this->client->addScope(Gmail::GMAIL_READONLY);
+        $this->client->setPrompt('consent');
+        $this->client->setAccessType('offline');
 
         $this->client->setRedirectUri($this->redirect_uri);
 
-        if (!empty($this->redis->get($_ENV['REDIS_PREFIX'] . 'gmail_token')) && !empty($this->redis->get($_ENV['REDIS_PREFIX'] . 'gmail_token_expire'))) {
-            if (time() > $this->redis->get($_ENV['REDIS_PREFIX'] . 'gmail_token_expire')) {
-                $this->redis->del($_ENV['REDIS_PREFIX'] . 'gmail_token');
-                $this->redis->del($_ENV['REDIS_PREFIX'] . 'gmail_token_expire');
-            } else {
-                $this->client->setAccessToken($this->redis->get($_ENV['REDIS_PREFIX'] . 'gmail_token'));
+        $request = $requestStack->getCurrentRequest();
+        if ($this->redis->exists($_ENV['REDIS_PREFIX'] . 'gmail_token') && $this->redis->exists($_ENV['REDIS_PREFIX'] . 'refresh_token')) {
+            $this->client->setAccessToken($this->redis->get($_ENV['REDIS_PREFIX'] . 'gmail_token'));
+            if (!empty($this->client->getRefreshToken()) || $this->client->isAccessTokenExpired()) {
+                $newToken = $this->client->fetchAccessTokenWithRefreshToken($this->redis->get($_ENV['REDIS_PREFIX'] . 'refresh_token'));
+                $this->client->setAccessToken($newToken);
+                $this->redis->set($_ENV['REDIS_PREFIX'] . 'gmail_token', $newToken);
+            }
+        } else {
+            $controllerInfo = $request->attributes->get('_controller');
+            if (!in_array($controllerInfo, ['App\Controller\GMailController::loginGMail', 'App\Controller\GMailController::callbackAuth'])) {
+                throw new \Exception('Gmail not authorized. Please authorize first', 44);
             }
         }
     }
@@ -68,10 +78,15 @@ class GMailController extends AbstractController
     #[Route('/gmail/login', name: 'gmail.login')]
     public function loginGMail(): RedirectResponse
     {
-        if ($this->redis->exists($_ENV['REDIS_PREFIX'] . 'gmail_token')) {
+        if ($this->redis->exists($_ENV['REDIS_PREFIX'] . 'gmail_token') && $this->redis->exists($_ENV['REDIS_PREFIX'] . 'refresh_token')) {
             return new RedirectResponse('https://ordub.awery.com.ua/gmail/get');
         }
-        return new RedirectResponse($this->client->createAuthUrl());
+        return new RedirectResponse(
+            $this->client->createAuthUrl(
+                Gmail::GMAIL_READONLY,
+                ['access_type' => 'offline']
+            )
+        );
     }
 
     /**
@@ -86,7 +101,7 @@ class GMailController extends AbstractController
         $googleCredentials = $this->client->fetchAccessTokenWithAuthCode($_GET['code']);
         if (!empty($googleCredentials['access_token'])) {
             $this->redis->set($_ENV['REDIS_PREFIX'] . 'gmail_token', $googleCredentials['access_token']);
-            $this->redis->set($_ENV['REDIS_PREFIX'] . 'gmail_token_expire', ($googleCredentials['created'] + $googleCredentials['expires_in']));
+            $this->redis->set($_ENV['REDIS_PREFIX'] . 'refresh_token', $googleCredentials['refresh_token']);
             return new RedirectResponse('https://ordub.awery.com.ua/gmail/get');
         }
 
@@ -149,7 +164,8 @@ class GMailController extends AbstractController
     #[Route('/gmail/details', name: 'gmail.details')]
     public function getMailDetails(Request $request): Response
     {
-        $data['email_id'] = $_GET['email_id'] ?? $request['email_id'] ?? null;// $this->checkEntryData($data, 'email_id', 'string', false, 15);
+        $data = $request->getContent();
+        $data['email_id'] = $_GET['email_id'] ?? $data['email_id'] ?? null;// $this->checkEntryData($data, 'email_id', 'string', false, 15);
         if (empty($data['email_id'])) {
             throw new Exception('No email_id provided', 400);
         }
@@ -249,7 +265,7 @@ class GMailController extends AbstractController
     public function logOutGMail(): JsonResponse
     {
         $this->redis->del($_ENV['REDIS_PREFIX'] . 'gmail_token');
-        $this->redis->del($_ENV['REDIS_PREFIX'] . 'gmail_token_expire');
+        $this->redis->del($_ENV['REDIS_PREFIX'] . 'gmail_token');
         return new JsonResponse([
             'error' => 0,
             'message' => 'logOutGMail',
