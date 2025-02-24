@@ -28,16 +28,17 @@ class PhpOneController extends AbstractController
     #[Route('/api/updateSub', name: 'api_update_sub', methods: ['POST'])]
     public function updateSub(Request $request):JsonResponse
     {
-        if (!empty($request->get('id'))) {
-            $setting = $this->em->getRepository(Settings::class)->findBy(['id' => $request->get('id')]);
+        $requestData = json_decode($request->getContent(), true);
+        if (!empty($requestData['id'])) {
+            $setting = $this->em->getRepository(Settings::class)->findBy(['id' => $requestData['id']]);
         } else {
             $setting = new Settings();
         }
         if (!empty($setting)) {
-            $setting->base_url = $request->get('base_url');
-            $setting->token = $request->get('token');
-            $setting->email = $request->get('email');
-            if (empty($request->get('id'))) {
+            foreach ($requestData as $key => $value) {
+                $setting->{$key} = $value;
+            }
+            if (empty($requestData['id'])) {
                 $this->em->persist($setting);
             }
             $this->em->flush();
