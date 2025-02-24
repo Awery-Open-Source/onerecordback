@@ -2,7 +2,7 @@
 namespace App\Controller;
 
 use App\Entity\Awb;
-use App\Entity\Piece;
+use App\Entity\PieceAwb;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -62,15 +62,15 @@ class AwbController extends AbstractController
     #[Route('/api/getPieces', name: 'api_get_pieces', methods: ['GET'])]
     public function getPieces(Request $request):JsonResponse
     {
-        return new JsonResponse($this->em->getRepository(Piece::class)->findAll());
+        return new JsonResponse($this->em->getRepository(PieceAwb::class)->findAll());
     }
 
     protected function updatePiece($piece)
     {
         if (!empty($piece['id'])) {
-            $Piece = $this->em->getRepository(Piece::class)->find($piece['id']);
+            $Piece = $this->em->getRepository(PieceAwb::class)->find($piece['id']);
         } else {
-            $Piece = new Piece();
+            $Piece = new PieceAwb();
         }
         if (!empty($Piece)) {
             foreach ($piece as $key => $value) {
