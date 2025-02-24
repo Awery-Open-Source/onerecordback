@@ -163,7 +163,7 @@ class FSUMessageService
             'POD'=>'PROOF OF DELIVERY'];
     }
 
-    public function generateFsu($event_id, EntityManagerInterface $entityManager)
+    public static function generateFsu($event_id, EntityManagerInterface $entityManager)
     {
         $event = $entityManager->getRepository(Event::class)->find($event_id);
         $awb = $entityManager->getRepository(Awb::class)->find($event->awb_id);

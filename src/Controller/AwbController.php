@@ -4,23 +4,28 @@ namespace App\Controller;
 use App\Entity\Awb;
 use App\Entity\Event;
 use App\Entity\PieceAwb;
+use App\Entity\Settings;
 use App\Service\FSUMessageService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 
 class AwbController extends AbstractController
 {
     private EntityManagerInterface $em;
+    private MailerInterface $mailer;
 
-    public function __construct(EntityManagerInterface $em, SerializerInterface $serializer)
+    public function __construct(EntityManagerInterface $em, SerializerInterface $serializer, MailerInterface $mailer)
     {
         $this->serializer = $serializer;
 //        $this->normalizer = $normalizer;
         $this->em = $em;
+        $this->mailer = $mailer;
     }
 
     #[Route('/api/getAwbs', name: 'api_get_awbs', methods: ['GET'])]
@@ -105,6 +110,30 @@ class AwbController extends AbstractController
         $this->sendToRed($id);
 
         return new JsonResponse(['id'=>$id]);
+    }
+
+    public function sendToSubscribers($id_event = 0)
+    {
+        if (empty($id_event)) {
+            return false;
+        }
+
+        $query = $this->em->createQuery(
+            'SELECT email FROM settings WHERE email IS NOT NULL'
+        );
+        $usersWithEmail = $query->getResult();
+
+        $message = FSUMessageService::generateFsu($id_event, $this->em);
+
+        foreach ($usersWithEmail as $user){
+            $email = (new Email())
+                ->from('noreply@awery.aero')
+                ->to($user)
+                ->subject('FSU Message')
+                ->html($message);
+            $this->mailer->send($email);
+        }
+
     }
 
     public function sendToRed($id_fsu_message = 0)
