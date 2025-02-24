@@ -1,9 +1,6 @@
 <?php
 namespace App\Controller;
 
-use App\Entity\Cargo\Agent\Actor;
-use App\Entity\Cargo\Core\Waybill;
-use App\Entity\Cargo\Enum\EventTimeType;
 use App\Entity\Settings;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,6 +11,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class PhpOneController extends AbstractController
 {
+    private EntityManagerInterface $em;
     public function __construct(EntityManagerInterface $em, SerializerInterface $serializer)
     {
         $this->serializer = $serializer;
