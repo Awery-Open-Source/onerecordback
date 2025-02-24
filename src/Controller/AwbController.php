@@ -7,6 +7,7 @@ use App\Entity\PieceAwb;
 use App\Entity\Settings;
 use App\Service\FSUMessageService;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,7 +32,7 @@ class AwbController extends AbstractController
     #[Route('/api/getAwbs', name: 'api_get_awbs', methods: ['GET'])]
     public function getAwbs(Request $request):JsonResponse
     {
-        return new JsonResponse($this->em->getRepository(Awb::class)->findAll());
+        return new JsonResponse($this->em->getRepository(Awb::class)->findBy([], ['id' => 'DESC']));
     }
 
     #[Route('/api/updateAwb', name: 'api_update_awb', methods: ['POST'])]
@@ -64,6 +65,26 @@ class AwbController extends AbstractController
             }
         }
         return new JsonResponse(['status' => 'success', 'id' => $id]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    #[Route('/api/getAwb', name: 'api_get_awb', methods: ['GET'])]
+    public function getAwb(Request $request):JsonResponse
+    {
+
+        $awb_no = $request->query->get('awb_no');
+        if (!empty($awb_no)) {
+            $awb = $this->em->getRepository(Awb::class)->findOneBy(['awb_no' => $awb_no]);
+        }
+        if (empty($awb)) {
+            throw new Exception('Invalid request');
+        }
+
+        $pieces = $this->em->getRepository(PieceAwb::class)->findBy(['awb_id' => $awb->getId()]);
+        $events = $this->em->getRepository(Event::class)->findBy(['awb_id' => $awb->getId()]);
+        return new JsonResponse(['status' => 'success', 'awb' => $awb, 'pieces' => $pieces, 'events' => $events]);
     }
 
     #[Route('/api/getPieces', name: 'api_get_pieces', methods: ['GET'])]
