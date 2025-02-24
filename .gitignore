@@ -26,4 +26,5 @@
 /assets/vendor/
 /.idea
 ###< symfony/asset-mapper ###
-config/imap.json
+config/client.google.json
+

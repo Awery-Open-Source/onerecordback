@@ -12,6 +12,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Google;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
 
 class GMailController extends AbstractController
@@ -19,12 +22,13 @@ class GMailController extends AbstractController
     public Google\Client $client;
     public Redis $redis;
     public string $redirect_uri = 'https://ordub.awery.com.ua/gmail/callback';
+    private MailerInterface $mailer;
 
     /**
      * @throws Google\Exception
      * @throws \Exception
      */
-    public function __construct(RequestStack $requestStack)
+    public function __construct(RequestStack $requestStack, MailerInterface $mailer)
     {
         $this->redis = new Redis();
         $this->redis->connect('localhost');
@@ -50,6 +54,7 @@ class GMailController extends AbstractController
                 throw new \Exception('Gmail not authorized. Please authorize first', 44);
             }
         }
+        $this->mailer = $mailer;
     }
 
     /**
@@ -272,6 +277,33 @@ class GMailController extends AbstractController
             'data_list' => [
                 'authorized' => false
             ]
+        ]);
+    }
+
+    /**
+     * @throws \Exception
+     * @throws TransportExceptionInterface
+     */
+    #[Route('/gmail/test', name: 'gmail.test')]
+    public function testSend(): JsonResponse
+    {
+        return new JsonResponse([
+            'error' => 0,
+            'message' => 'testSend',
+            'data_list' => []
+        ]);
+        $email = (new Email())
+            ->from('noreply@awery.aero')
+            ->to('mykola.p@awery.aero')
+            ->subject('One more subject')
+            ->html('Here will be a content');
+
+        $this->mailer->send($email);
+
+        return new JsonResponse([
+            'error' => 0,
+            'message' => 'testSend',
+            'data_list' => []
         ]);
     }
 }
