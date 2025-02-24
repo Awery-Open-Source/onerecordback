@@ -35,10 +35,6 @@ EOT;
 // Instantiate the processor with your message
         $fsuMessage = new FSUMessageService($fsuMessageText);
 
-//        $waybill = new EventTimeType();
-//
-//        $waybill->setWaybillNumber($fsuMessage->awb->awb_no);
-
         $dateCreate = new \DateTime();
         $dateCreateStr = $dateCreate->format('Y-m-d\TH:i:s.v\Z');
 
