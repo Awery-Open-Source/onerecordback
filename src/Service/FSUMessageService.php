@@ -169,12 +169,10 @@ class FSUMessageService
         $awb = $entityManager->getRepository(Awb::class)->find($event->awb_id);
         $totalPieces = $awb->total_pieces??0;//todo calculate total pieces
         $dateAction = $event->dateAction->format('dMHi');
-        $text = <<<EOT
+        return <<<EOT
 FSU/12
 {$awb->awb_no}{$awb->origin}{$awb->destination}/T$totalPieces}K{$awb->weight}
 {$event->type}/{$dateAction}/{$event->location}/T{$event->qty}K{$event->weight}/$event->text}
 EOT;
-
-        return $text;
     }
 }
