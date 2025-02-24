@@ -30,7 +30,7 @@ class PhpOneController extends AbstractController
     {
         $requestData = json_decode($request->getContent(), true);
         if (!empty($requestData['id'])) {
-            $setting = $this->em->getRepository(Settings::class)->findBy(['id' => $requestData['id']]);
+            $setting = $this->em->getRepository(Settings::class)->find($requestData['id']);
         } else {
             $setting = new Settings();
         }
