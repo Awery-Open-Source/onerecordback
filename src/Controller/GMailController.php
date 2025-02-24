@@ -53,7 +53,6 @@ class GMailController extends AbstractController
         }
     }
 
-
     #[Route('/gmail/component', name: 'gmail.component')]
     public function getGMAILComponent(): Response
     {
