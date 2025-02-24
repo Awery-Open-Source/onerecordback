@@ -27,7 +27,7 @@ class AwbController extends AbstractController
     #[Route('/api/getAwbs', name: 'api_get_awbs', methods: ['GET'])]
     public function getAwbs(Request $request):JsonResponse
     {
-        return new JsonResponse($this->em->getRepository(Awb::class)->findAll());
+        return new JsonResponse($this->em->getRepository(Awb::class)->findBy([], ['id' => 'DESC']));
     }
 
     #[Route('/api/updateAwb', name: 'api_update_awb', methods: ['POST'])]
