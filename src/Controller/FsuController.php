@@ -159,47 +159,14 @@ EOT;
             $eventType = $requestData['api:hasEventType']['@id'];
             $logisticsObjectUrl = $requestData['api:hasLogisticsObject']['@id'];
             $objectType = $requestData['api:hasLogisticsObjectType']['@value'];
-
-//            echo "Event Type: $eventType\n"; // Например: api:LOGISTICS_OBJECT_CREATED
-//            echo "Logistics Object URL: $logisticsObjectUrl\n"; // URL объекта
-//            echo "Object Type: $objectType\n"; // Тип объекта: cargo#Piece
         }
 
         if (!empty($objectType) && !empty($logisticsObjectUrl) && $objectType === 'cargo#Waybill') {
-            // Обработка создания объекта типа cargo#Waybill
-            // Например, создание объекта в базе данных
-
-            $url = $logisticsObjectUrl;
-
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'GET',
-                CURLOPT_POSTFIELDS =>"{}",
-                CURLOPT_HTTPHEADER => array(
-                    'Content-Type: application/ld+json',
-                    'Accept: application/ld+json'
-                ),
-            ));
-
-            $response = json_decode(curl_exec($curl));
-
-
+            $OneRecordCreatorController = new OneRecordCreatorController($this->serializer, $this->em);
+            $OneRecordCreatorController->createAwb($logisticsObjectUrl);
         }
 
 
-        return new JsonResponse([$logisticsObjectUrl,$objectType]);
-
-
-        // Обработка создания ресурса
-        $createdData = ['id' => 2, 'name' => $requestData['name']];
-
-        return new JsonResponse($createdData, JsonResponse::HTTP_CREATED);
+        return new JsonResponse();
     }
 }
