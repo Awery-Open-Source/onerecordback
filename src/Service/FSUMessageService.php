@@ -116,4 +116,46 @@ class FSUMessageService
     {
         return $this->parsedData;
     }
+
+    public static function getDescOfStatus($status)
+    {
+        return self::getStatusDescriptions()[$status] ?? 'Unknown';
+    }
+
+    public static function getStatusDescriptions()
+    {
+        return [
+            'BKD'=>'BOOKED (The consignment has been booked for transport)',
+            'BRF'=>'BOOKING RECEIVED BY FORWARDER (A booking confirmation should be sent from the Forwarder to the Shipper)',
+            'PUP'=>'PICK UP (From shipper)',
+            'REW'=>'RECEIVED EXPORT WAREHOUSE (Arrival of freight at forwarder warehouse)',
+            'SDO'=>'SHIPMENT DATA ON-HAND',
+            'DEW'=>'TRUCK DEPARTING FORWARDER’S EXPORT WAREHOUSE/HUB (Loaded truck departs forwarder branch facility to hub)',
+            'FWB'=>'FREIGHT TRACKING WAYBILL (MANIFEST/ The Forwarders Electronic (Master) Air Waybill)',
+            'TAC'=>'TRUCK ARRIVAL AT CARRIER (Arrival of truck at carrier) USED FOR HAWB',
+            'DOC'=>'TRUCK ARRIVES AT DEPARTURE AIRLINE WAREHOUSE (The truck arrives at the Airline’s domain at Origin Airport)',
+            'FOH'=>'FREIGHT ON HAND (Freight received at the origin airport by an Airline or a GHA/Ground Handling Agent)',
+            'RCS'=>'RECEIVED CARGO FROM SHIPPER, READY FOR CARRIAGE (Freight and document / data received at origin airport by Airline / GHA and confirmed to be “Ready for carriage” for transportation to airport of destination)',
+            'RCT'=>'RECEIVED FROM INTERLINE TRANSFER (airline to indicate that a shipment is received from an interline partner and that an acceptance check has been done by the receiving carrier)',
+            'UWS'=>'LIR - CONSOLIDATION (Palletization has been finalized)',
+            'FOW'=>'FREIGHT OUT FROM GROUND HANDLER WAREHOUSE CONTROL (Control of the shipment passes from the warehouse handler to the ramp handler)',
+            'DEP'=>'DEPARTED',
+            'ARR'=>'ARRIVED',
+            'ALS'=>'AIRCRAFT UNLOADING START',
+            'ALE'=>'AIRCRAFT UNLOADING END (Monitor the ramp handling agent and the transport handling agent in case of 2 different providers)',
+            'FIW'=>'FREIGHT INTO WAREHOUSE (The time that the control of the shipment passes from the ramp handler to the warehouse handler)',
+            'RCF'=>'RECEIVED CARGO FROM FLIGHT (The time and location at which the freight is planned to be checked in at the airport warehouse)',
+            'AWR'=>'DOCUMENT RECEIPT INTO IMPORT WAREHOUSE AT DESTINATION AIRPORT (The arrival documentation has been physically received from flight at destination) NOT SURE WHETHER IT SHOULD BE DISPLAYED →ALSO AT THIS STAGE, WE TRANSFER THE SHIPMENT TO ANOTHER CARRIER IF IT IS AN INTERLINE OR ANOTHER DESTINATION',
+            'NFD'=>'NOTIFIED FOR DELIVERY (Confirmation to Forwarder of the Notification to Consignee or Consignee’s Agent that Freight + Documents are On Hand)',
+            'AWD'=>'DOCUMENT DELIVERY AT DESTINATION (The arrival documentation has been physically made available to the consignee or the consignee’s agent)',
+            'HDP'=>'HANDOVER OF DOCUMENTS FROM FORWARDER TO 3RD PARTY BROKER/CONSIGNEE (Third party takes over the customs clearance and the transport of the shipment)',
+            'CCD'=>'CUSTOMS CLEARED',
+            'DLV'=>'DELIVERY OF FREIGHT AT DESTINATION (Full custody of Freight is transferred to the Consignee or their Agent at Destination)',
+            'DIW'=>'DEPARTED INTO IMPORT HUB',
+            'RIW'=>'RECEIVED INTO IMPORT HUB',
+            'TPN'=>'THIRD-PARTY/ CONSIGNEE NOTIFICATION',
+            'SPC'=>'PICK UP FREIGHT BY CONSIGNEE (The consignee is picking up the freight directly from the respective Import Hub/Warehouse)',
+            'OFD'=>'OUT FOR DELIVERY TO CONSIGNEE',
+            'POD'=>'PROOF OF DELIVERY'];
+    }
 }
