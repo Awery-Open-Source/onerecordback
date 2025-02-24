@@ -57,6 +57,6 @@ class PhpOneController extends AbstractController
         $list = file_get_contents(
             'https://cdn.awery.com/assets/erp/lists/airports.json'
         );
-        return new JsonResponse($list);
+        return new JsonResponse(json_decode($list));
     }
 }
