@@ -190,6 +190,7 @@ class GMailController extends AbstractController
 
         $resultData['from_name'] = str_contains($resultData['from'], '<') ? substr($resultData['from'], 0, strpos($resultData['from'], '<') - 1) : $resultData['from'];
         $resultData['from_email'] = str_contains($resultData['from'], '<') ? substr($resultData['from'], strpos($resultData['from'], '<') + 1, -1) : $resultData['from'];
+        $resultData['to_email'] = $resultData['to'];
 
         $resultData['body'] = $gmailMessage->getPayload()->getBody()->getData();
         $parts = $gmailMessage->getPayload()->getParts();

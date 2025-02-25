@@ -4,8 +4,9 @@ namespace App\Controller;
 use App\Entity\Awb;
 use App\Entity\Event;
 use App\Entity\PieceAwb;
-use App\Entity\Settings;
 use App\Service\FSUMessageService;
+use DateMalformedStringException;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -115,6 +116,9 @@ class AwbController extends AbstractController
         return new JsonResponse(['status' => 'success']);
     }
 
+    /**
+     * @throws DateMalformedStringException
+     */
     #[Route('/api/updateEvent', name: 'api_update_event', methods: ['POST'])]
     public function updateEvent(Request $request):JsonResponse
     {
@@ -122,11 +126,15 @@ class AwbController extends AbstractController
         $Event = new Event();
 
         foreach ($requestData as $key => $value) {
-            $Event->{$key} = $value;
+            $Event->{$key} = str_starts_with($key, 'date') ? new DateTime($value) : $value;
         }
-        $this->em->persist($Event);
-        $this->em->flush();
-        $id = $Event->getId();
+        try {
+            $this->em->persist($Event);
+            $this->em->flush();
+            $id = $Event->getId();
+        }catch (Exception $e){
+            return new JsonResponse(['status' => 'error', 'message' => $e->getMessage()]);
+        }
 
         $this->sendToRed($id);
 
