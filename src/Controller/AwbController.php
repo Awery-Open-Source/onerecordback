@@ -288,7 +288,7 @@ class AwbController extends AbstractController
         $le->setEventLocation($location);
         $this->em->flush();
 //        dump($lo_url);die;
-        $this->sendToRed($id);
+//        $this->sendToRed($id);
         $this->sendToSubscribers($id);
         $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
 //        dump($tmp);die;
