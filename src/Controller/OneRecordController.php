@@ -144,7 +144,7 @@ class OneRecordController extends AbstractController
     public function getLogisticsObject(string $logisticsObjectId): JsonResponse
     {
 //        return $this->sendNotification($logisticsObjectId);
-        $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+        $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
         $object = $this->entityManager->getRepository(LogisticsObject::class)->find($logisticsObjectId);
         if (!$object) {
             return $this->json(['error' => 'Logistics Object not found'], 404);
@@ -216,7 +216,7 @@ class OneRecordController extends AbstractController
     #[Route('/logistic-objecstss/sendNotification', name: 'sendNotification', methods: ['GET'])]
     public function sendNotification($logisticsObjectId, $type = 'LOGISTICS_OBJECT_CREATED')
     {
-        $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+        $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
         $remotedomain = 'http://server2.com/notification';
         $object = $this->entityManager->getRepository(LogisticsObject::class)->find($logisticsObjectId);
         $tmp = explode('\\',get_class($object));
@@ -272,7 +272,7 @@ class OneRecordController extends AbstractController
     #[Route('/logistic-objects/{logisticsObjectId}/logistics-events', name: 'logistics_events', methods: ['GET', 'POST'])]
     public function logisticsEvents(Request $request, string $logisticsObjectId): JsonResponse
     {
-        $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+        $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
         if ($request->isMethod('POST')) {
             $data = json_decode($request->getContent(), true);
 
@@ -345,7 +345,7 @@ class OneRecordController extends AbstractController
     #[Route('/logistic-objects/{logisticsObjectId}/logistics-events/{logisticsEventId}', name: 'logistics_events_one', methods: ['GET', 'POST'])]
     public function logisticsEventsOne(Request $request, string $logisticsObjectId, string $logisticsEventId): JsonResponse
     {
-        $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+        $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
         $logisticsObject = $this->entityManager->getRepository(LogisticsObject::class)->find($logisticsObjectId);
 
         $event = $this->entityManager->getRepository(LogisticsEvent::class)->find($logisticsEventId);

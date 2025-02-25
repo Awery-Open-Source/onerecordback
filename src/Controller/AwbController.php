@@ -140,12 +140,12 @@ class AwbController extends AbstractController
         $le->setEventDate(new \DateTime());
         $le->setEventName('Created');
         $le->setEventTimeType(EventTimeType::ACTUAL);
-        $setting->one_record_url = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/'.$waybill->getId();
+        $setting->one_record_url = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/'.$waybill->getId();
         $le->setEventFor($waybill);
         $this->em->persist($le);
         $this->em->flush();
 
-        $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+        $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
 
         $send_obj = new \stdClass();
         $send_obj->{'@context'} = (object) ['api' => 'https://onerecord.iata.org/ns/api#'];
@@ -280,8 +280,14 @@ class AwbController extends AbstractController
         $this->em->flush();
 //        dump($lo_url);die;
         $this->sendToRed($id);
-
-        return new JsonResponse(['id'=>$id, 'status' => 'success']);
+        $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+//        dump($tmp);die;
+        return new JsonResponse(['id'=>$id, 'status' => 'success'],JsonResponse::HTTP_CREATED, // 201 Created
+                [
+                    'Location' => $lo_path.end($tmp).'/logistics-events/'.$le->getId(),
+                    'Content-Type' => 'application/ld+json; version=2.1.0',
+                    'Type' => 'https://onerecord.iata.org/ns/cargo#LogisticsEvent',
+                ]);
     }
 
     public function sendToSubscribers($id_event = 0)
