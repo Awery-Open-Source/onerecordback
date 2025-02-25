@@ -161,7 +161,7 @@ EOT;
         }
 
         if (!empty($objectType) && !empty($logisticsObjectUrl)) {
-            $OneRecordCreatorController = new OneRecordCreatorController($this->serializer, $this->em);
+            $OneRecordCreatorController = new OneRecordCreatorController($this->em,$this->serializer);
             $OneRecordCreatorController->createAwb($logisticsObjectUrl);
         }
 
