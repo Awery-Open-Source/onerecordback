@@ -2,6 +2,15 @@
 namespace App\Controller;
 
 use App\Entity\Awb;
+use App\Entity\Cargo\Common\Location;
+use App\Entity\Cargo\Core\Piece;
+use App\Entity\Cargo\Core\Shipment;
+use App\Entity\Cargo\Core\Waybill;
+use App\Entity\Cargo\Embedded\Dimensions;
+use App\Entity\Cargo\Embedded\Value;
+use App\Entity\Cargo\Enum\EventTimeType;
+use App\Entity\Cargo\Event\LogisticsEvent;
+use App\Entity\CoreCodeLists\MeasurementUnitCode;
 use App\Entity\Event;
 use App\Entity\PieceAwb;
 use App\Service\FSUMessageService;
@@ -59,13 +68,115 @@ class AwbController extends AbstractController
             $this->em->flush();
             $id = $setting->getId();
         }
+        $gr_w = 0;
+        $shipment = new Shipment();
+        $shipment->setGoodsDescription('shipment description');
         if (!empty($id) && !empty($requestData['pieces'])) {
+
             foreach ($requestData['pieces'] as $piece) {
                 $piece['awb_id'] = $id;
                 $this->updatePiece($piece);
+                $gr_w+=$piece['weight'];
+
+
+
+                $height = new Value();
+                $height->setNumericalValue($piece['height']);
+                $height->setUnit(MeasurementUnitCode::CMT);
+                $length = new Value();
+                $length->setNumericalValue($piece['length']);
+                $length->setUnit(MeasurementUnitCode::CMT);
+                $width = new Value();
+                $width->setNumericalValue($piece['width']);
+                $width->setUnit(MeasurementUnitCode::CMT);
+                $dimension = new Dimensions();
+                $dimension->setHeight($height);
+                $dimension->setLength($length);
+                $dimension->setWidth($width);
+                $this->em->persist($height);
+                $this->em->persist($length);
+                $this->em->persist($width);
+                $this->em->persist($dimension);
+                $piece2 = new Piece();
+                $piece2->setUpid(rand(9879887,87651486545));
+                $piece2->setDimensions($dimension);
+                $this->em->persist($piece2);
+                $shipment->addPieces($piece2);
             }
         }
-        return new JsonResponse(['status' => 'success', 'id' => $id]);
+        $gr_weight = new Value();
+        $gr_weight->setNumericalValue($gr_w);
+        $gr_weight->setUnit(MeasurementUnitCode::KGM);
+        $shipment->setTotalGrossWeight($gr_weight);
+        $waybill = new Waybill();
+        $tmp = explode('-', $requestData['awb_no']);
+        $waybill->setWaybillPrefix($tmp[0]);
+        $waybill->setWaybillNumber($tmp[1]);
+
+        $location = new Location();
+        $location->setLocationName($requestData['origin']);
+        $location->setLocationType('airport');
+        $location1 = new Location();
+        $location1->setLocationName($requestData['destination']);
+        $location1->setLocationType('airport');
+        $waybill->setDepartureLocation($location);
+        $waybill->setArrivalLocation($location1);
+
+        $shipment->setWaybill($waybill);
+        $waybill->setShipment($shipment);
+
+        $this->em->persist($shipment);
+        $this->em->persist($waybill);
+        $this->em->persist($location1);
+        $this->em->persist($location);
+        $this->em->persist($gr_weight);
+
+        $le = new LogisticsEvent();
+        $le->setCreationDate(new \DateTime());
+        $le->setEventCode('CRE');
+        $le->setEventDate(new \DateTime());
+        $le->setEventName('Created');
+        $le->setEventTimeType(EventTimeType::ACTUAL);
+        $setting->one_record_url = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/'.$waybill->getId();
+        $le->setEventFor($waybill);
+        $this->em->persist($le);
+        $this->em->flush();
+
+        $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
+
+        $send_obj = new stdClass();
+        $send_obj->{'@context'} = (object) ['api' => 'https://onerecord.iata.org/ns/api#'];
+        $send_obj->{'@type'} = 'api:Notification';
+        $send_obj->{'api:hasEventType'} = (object) ['@id' => 'api:LOGISTICS_OBJECT_CREATED'];
+        $send_obj->{'api:hasLogisticsObject'} = (object) ['@id' => $lo_path.$waybill->getId()];
+        $send_obj->{'api:hasLogisticsObjectType'} = (object) [
+            '@type' => 'http://www.w3.org/2001/XMLSchema#anyURI',
+            '@value' => 'https://onerecord.iata.org/ns/cargo#Shipment'
+        ];
+        $remote_url = 'https://phpanotherone.awery.aero/api/update';
+
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $remote_url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($send_obj),
+            CURLOPT_HTTPHEADER => array(
+                'token: 84b8629b37fab5cb474c074d389539f86b91823a24785ba739a19b5c75eb8d20',
+                'Content-Type: application/json',
+            ),
+        ));
+        $response = curl_exec($curl);
+        curl_close($curl);
+
+        return new JsonResponse(['status' => 'success', 'id' => $id, 'logistics_object_id' => $waybill->getId()]);
     }
 
     /**
