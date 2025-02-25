@@ -45,7 +45,7 @@ class AppCommandParseEmailCommand extends Command
             $mailsList = array_filter(json_decode(
                 $controller->getMails(new Request([]))->getContent(),
                 true
-            )['data_list']['messages'] ?? [], fn($mail) => strtotime($mail['date']) > (time() - 3600));
+            )['data_list']['messages'] ?? [], fn($mail) => strtotime($mail['date']) > (time() - 60));
 
             foreach ($mailsList as &$email) {
                 try {

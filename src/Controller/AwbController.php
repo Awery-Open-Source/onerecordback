@@ -249,7 +249,7 @@ class AwbController extends AbstractController
 
         $this->sendToRed($id);
 
-        return new JsonResponse(['id'=>$id]);
+        return new JsonResponse(['id'=>$id, 'status' => 'success']);
     }
 
     public function sendToSubscribers($id_event = 0)
@@ -285,6 +285,9 @@ class AwbController extends AbstractController
         $awb = $this->em->getRepository(Awb::class)->find($fsuMessage->awb_id);
         $redServer = getenv('RED_SERVER', 'https://red.awery.com.ua');
         $eventName = FSUMessageService::getDescOfStatus($fsuMessage->type) ?? 'Unknown';
+        //DateTime to sting
+        $dateCreateStr = $fsuMessage->dateCreate->format('Y-m-d H:i:s');
+        $dateEventStr = $fsuMessage->dateAction->format('Y-m-d H:i:s');
         $enum = \App\Entity\Cargo\Enum\EventTimeType::ACTUAL;
         $eventJson = <<<JSON
         {
@@ -293,8 +296,8 @@ class AwbController extends AbstractController
           "eventLocation": "$fsuMessage->location",
           "eventTimeType": "ACTUAL",
           "recordingOrganization": "$redServer",
-          "creationDate": "$fsuMessage->dateCreate",
-          "eventDate": "$fsuMessage->dateAction",
+          "creationDate": "$dateCreateStr",
+          "eventDate": "$dateEventStr",
           "eventName": "$eventName",
           "partialEventIndicator": true
         }
@@ -321,7 +324,7 @@ class AwbController extends AbstractController
 
         $headers = $this->getHeaders($response);
 
-        $fsuMessage->one_record_id = $headers['Location'];
+        $fsuMessage->one_record_id = $headers['Location']??null;
         $this->em->flush();
         return ['id'=>$fsuMessage->id];
     }
