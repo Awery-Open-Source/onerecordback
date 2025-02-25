@@ -5,6 +5,8 @@ namespace App\Serializer;
 use App\Entity\Cargo\Abstract\LogisticsObject;
 use App\Entity\Cargo\Agent\Organization;
 use App\Entity\Cargo\Agent\Person;
+use App\Entity\Cargo\Embedded\Value;
+use App\Entity\Cargo\Event\LogisticsEvent;
 use ReflectionClass;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
@@ -122,11 +124,37 @@ class OrNormalizer  implements NormalizerInterface, DenormalizerInterface
     /**
      * 🔹 Преобразует объект в One Record JSON-LD формат при отправке (сокращенный формат)
      */
-    public function normalize($object, string $format = null, array $context = []): array
+    public function normalize($object, ?string $format = null, array $context = []): array
     {
+        // Инициализация обработчика циклических ссылок
+        if (!isset($context[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER])) {
+            $context[AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER] = function ($object) {
+                return method_exists($object, 'getId') ? $object->getId() : spl_object_id($object);
+            };
+        }
+
+        // Ограничение глубины рекурсии (если используется)
+        $context['circular_reference_limit'] = $context['circular_reference_limit'] ?? 1;
+        if ($context['circular_reference_limit'] <= 0) {
+            return ['@id' => method_exists($object, 'getId') ? $object->getId() : spl_object_id($object)];
+        }
+        $context['circular_reference_limit']--;
+
+        // Проверяем, не был ли этот объект уже нормализован в текущем контексте
+        if (!isset($context['normalized_objects'])) {
+            $context['normalized_objects'] = [];
+        }
+        if (in_array(spl_object_id($object), $context['normalized_objects'], true)) {
+            return ['@id' => method_exists($object, 'getId') ? $object->getId() : spl_object_id($object)];
+        }
+        $context['normalized_objects'][] = spl_object_id($object);
+
+        // Запускаем стандартную нормализацию с JSON-LD
         $data = $this->normalizer->normalize($object, 'jsonld', $context);
-//        $data['ids'] = $object->getId();
+
+        // Преобразуем данные в сокращенный формат One Record
         return $this->normalizeShortFormat($object, $data);
+
     }
     private function normalizeShortFormat($object, array $data): array
     {
@@ -135,14 +163,41 @@ class OrNormalizer  implements NormalizerInterface, DenormalizerInterface
             '@type' => 'cargo:' . $this->getOneRecordShortType($object),
             '@id' => $data['@id'] ?? $this->generateOneRecordId($object),
         ];
-
         foreach ($data as $property => $value) {
             if(!empty($value) && $property != 'id'){
                 $oneRecordProperty = 'cargo:' . $property;
+                if(isset($value['@context'])){
+                    unset($value['@context']);
+                }
+                if(isset($value['id'])){
+                    unset($value['id']);
+                }
+                if(isset($value['@id'])){
+                    unset($value['@id']);
+                }
+                if(is_array($value) && count($value) > 1){
+
+                    foreach ($value as $vk => &$vv) {
+
+                        if($vk=='@type' || is_int($vk)){
+                            continue;
+                        }
+//                        dump($vk,$vv, 1);
+//                        $value['cargo:'.$vk] = $vv;
+//                        unset( $value[$vk]);
+//                        if($vk!=='@type' && !is_int($vk)){
+//                            $value['cargo:'.$vk] = $vv;
+//                            unset( $value[$vk]);
+//                        }
+//////                        if(is_int($vk) && is_array($vv) && !empty($vv['@id'])){
+////////                            $vv['@id'] = 'asd'.$vv['@id'];
+//////                        }
+                    }
+                }
                 $oneRecordData[$oneRecordProperty] = $value;
             }
         }
-
+        unset($oneRecordData['id']);
         return $oneRecordData;
     }
     private function getOneRecordShortType($object): string
@@ -153,7 +208,7 @@ class OrNormalizer  implements NormalizerInterface, DenormalizerInterface
     private function generateOneRecordId($object): string
     {
 //        return 'https://example.com/' . strtolower((new ReflectionClass($object))->getShortName()) . '/' . $this->propertyAccessor->getValue($object, 'id');
-        return 'https://ordub.awery.com.ua/logistic-objects/' . $this->propertyAccessor->getValue($object, 'id');
+        return 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/' . $this->propertyAccessor->getValue($object, 'id');
     }
     public function supportsNormalization($data, ?string $format = null, array $context = []): bool
     {
@@ -164,7 +219,7 @@ class OrNormalizer  implements NormalizerInterface, DenormalizerInterface
         }
 
         // Нормализуем только объекты, а не строки
-        return is_object($data) && $data instanceof LogisticsObject;
+        return is_object($data) && ($data instanceof LogisticsObject || $data instanceof LogisticsEvent);
     }
 
 
@@ -174,6 +229,8 @@ class OrNormalizer  implements NormalizerInterface, DenormalizerInterface
             LogisticsObject::class => true,
             Person::class  => true,
             Organization::class  => true,
+            Value::class  => true,
+            LogisticsEvent::class  => true,
         ];
     }
 
