@@ -12,9 +12,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Google;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
 
 class GMailController extends AbstractController
@@ -22,13 +19,12 @@ class GMailController extends AbstractController
     public Google\Client $client;
     public Redis $redis;
     public string $redirect_uri = 'https://ordub.awery.com.ua/gmail/callback';
-    private MailerInterface $mailer;
 
     /**
      * @throws Google\Exception
      * @throws \Exception
      */
-    public function __construct(RequestStack $requestStack, MailerInterface $mailer)
+    public function __construct(RequestStack|null $requestStack = null)
     {
         $this->redis = new Redis();
         $this->redis->connect('localhost');
@@ -40,7 +36,7 @@ class GMailController extends AbstractController
 
         $this->client->setRedirectUri($this->redirect_uri);
 
-        $request = $requestStack->getCurrentRequest();
+        $request = !empty($requestStack) ? $requestStack->getCurrentRequest() : null;
         if ($this->redis->exists($_ENV['REDIS_PREFIX'] . 'gmail_token') && $this->redis->exists($_ENV['REDIS_PREFIX'] . 'refresh_token')) {
             $this->client->setAccessToken($this->redis->get($_ENV['REDIS_PREFIX'] . 'gmail_token'));
             if (!empty($this->client->getRefreshToken()) || $this->client->isAccessTokenExpired()) {
@@ -49,12 +45,11 @@ class GMailController extends AbstractController
                 $this->redis->set($_ENV['REDIS_PREFIX'] . 'gmail_token', $newToken);
             }
         } else {
-            $controllerInfo = $request->attributes->get('_controller');
+            $controllerInfo = !empty($request) ? $request->attributes->get('_controller') : null;
             if (!in_array($controllerInfo, ['App\Controller\GMailController::loginGMail', 'App\Controller\GMailController::callbackAuth'])) {
                 throw new \Exception('Gmail not authorized. Please authorize first', 44);
             }
         }
-        $this->mailer = $mailer;
     }
 
     /**
@@ -277,33 +272,6 @@ class GMailController extends AbstractController
             'data_list' => [
                 'authorized' => false
             ]
-        ]);
-    }
-
-    /**
-     * @throws \Exception
-     * @throws TransportExceptionInterface
-     */
-    #[Route('/gmail/test', name: 'gmail.test')]
-    public function testSend(): JsonResponse
-    {
-        return new JsonResponse([
-            'error' => 0,
-            'message' => 'testSend',
-            'data_list' => []
-        ]);
-        $email = (new Email())
-            ->from('noreply@awery.aero')
-            ->to('mykola.p@awery.aero')
-            ->subject('One more subject')
-            ->html('Here will be a content');
-
-        $this->mailer->send($email);
-
-        return new JsonResponse([
-            'error' => 0,
-            'message' => 'testSend',
-            'data_list' => []
         ]);
     }
 }

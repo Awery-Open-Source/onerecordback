@@ -40,7 +40,7 @@ class AppCommandParseEmailCommand extends Command
             $mailsList = array_filter(json_decode(
                 $controller->getMails(new Request([]))->getContent(),
                 true
-            )['data_list']['messages'] ?? [], fn($mail) => strtotime($mail['date']) < (time() - 60));
+            )['data_list']['messages'] ?? [], fn($mail) => strtotime($mail['date']) > (time() - 60));
 
             foreach ($mailsList as &$email) {
                 try {
@@ -69,7 +69,7 @@ class AppCommandParseEmailCommand extends Command
             $io->note($e->getMessage());
         }
 
-        $io->success('You have a new command! Now make it your own! Pass --help to see your options.');
+        $io->success('Command executed successfully');
 
         return Command::SUCCESS;
     }
