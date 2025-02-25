@@ -55,7 +55,7 @@ class GMailController extends AbstractController
     /**
      * @throws Exception
      */
-    #[Route('/gmail/check', name: 'gmail')]
+    #[Route('/api/gmail/check', name: 'gmail')]
     public function checkGmailAuth(): void
     {
         if (!$this->redis->exists($_ENV['REDIS_PREFIX'] . 'gmail_token')) {
@@ -63,7 +63,7 @@ class GMailController extends AbstractController
         }
     }
 
-    #[Route('/gmail/component', name: 'gmail.component')]
+    #[Route('/api/gmail/component', name: 'gmail.component')]
     public function getGMAILComponent(): Response
     {
         return new JsonResponse([
@@ -75,7 +75,7 @@ class GMailController extends AbstractController
         ]);
     }
 
-    #[Route('/gmail/login', name: 'gmail.login')]
+    #[Route('/api/gmail/login', name: 'gmail.login')]
     public function loginGMail(): RedirectResponse
     {
         if ($this->redis->exists($_ENV['REDIS_PREFIX'] . 'gmail_token') && $this->redis->exists($_ENV['REDIS_PREFIX'] . 'refresh_token')) {
@@ -92,7 +92,7 @@ class GMailController extends AbstractController
     /**
      * @throws \Exception
      */
-    #[Route('/gmail/callback', name: 'gmail.callback')]
+    #[Route('/api/gmail/callback', name: 'gmail.callback')]
     public function callbackAuth(Request $request): Response
     {
         if (empty($_GET['code'])) {
@@ -119,7 +119,7 @@ class GMailController extends AbstractController
      * @throws Exception
      * @throws \Exception
      */
-    #[Route('/gmail/get', name: 'gmail.get')]
+    #[Route('/api/gmail/get', name: 'gmail.get')]
     public function getMails(Request $request): Response
     {
         $this->checkGmailAuth();
@@ -161,11 +161,11 @@ class GMailController extends AbstractController
      * @throws Exception
      * @throws \Exception
      */
-    #[Route('/gmail/details', name: 'gmail.details')]
+    #[Route('/api/gmail/details', name: 'gmail.details')]
     public function getMailDetails(Request $request): Response
     {
-        $data = $request->getContent();
-        $data['email_id'] = $_GET['email_id'] ?? $data['email_id'] ?? null;// $this->checkEntryData($data, 'email_id', 'string', false, 15);
+        $data = (array)$request->getContent();
+        $data['email_id'] = $_GET['email_id'] ?? (!empty($data['email_id']) ? $data['email_id'] : null);
         if (empty($data['email_id'])) {
             throw new Exception('No email_id provided', 400);
         }
@@ -204,43 +204,11 @@ class GMailController extends AbstractController
             } else {
                 $resultData['body'] = reset($bodyParts)->getBody()->getData();
             }
+        }
+
+        if ( base64_encode(base64_decode($resultData['body'], true)) === $resultData['body']){
             $resultData['body'] = $this->gmailBodyDecode($resultData['body']);
         }
-
-        $resultData['attachments'] = array_map(function ($part) use ($gmail, $gmailMessage) {
-            $cid = $part->headers[array_search('Content-ID', array_column($part->headers, 'name'))];
-
-            $attachmentData = $gmail->users_messages_attachments->get('me', $gmailMessage->id, $part->body->attachmentId);
-            $decodedData = strtr($attachmentData['data'], array('-' => '+', '_' => '/'));
-
-            return [
-                'filename' => $part->filename,
-                'mimeType' => $part->mimeType,
-                'cid' => $cid ? (str_starts_with($cid['value'], '<') ? substr(substr($cid['value'], 1), 0, -1) : $cid['value']) : null,
-                'content' => $part->body->data ?? $decodedData
-            ];
-        }, array_values(array_filter($parts, function ($part) {
-            return !empty($part->filename);
-        })));
-
-        $attachments2Delete = [];
-        foreach ($resultData['attachments'] as $key => $attachment) {
-
-
-            if (str_contains($resultData['body'], $attachment['cid'])) {
-                $resultData['body'] = str_replace('cid:' . $attachment['cid'], 'data:' . $attachment['mimeType'] . ';charset=utf-8;base64, ' . $attachment['content'], $resultData['body']);
-                $resultData['body'] = str_replace('<a ', '<a target="_blank" ', $resultData['body']);
-                $attachments2Delete[] = $key;
-            }
-        }
-
-        if (!empty($attachments2Delete)) {
-            foreach ($attachments2Delete as $key) {
-                unset($resultData['attachments'][$key]);
-            }
-            $resultData['attachments'] = array_values($resultData['attachments']);
-        }
-
 
         return new JsonResponse([
             'error' => 0,
@@ -254,14 +222,13 @@ class GMailController extends AbstractController
     private function gmailBodyDecode($data): false|string
     {
         $data = base64_decode(str_replace(array('-', '_'), array('+', '/'), $data));
-//		$data = imap_qprint($data);
         return ($data);
     }
 
     /**
      * @throws \Exception
      */
-    #[Route('/gmail/logout', name: 'gmail.logout')]
+    #[Route('/api/gmail/logout', name: 'gmail.logout')]
     public function logOutGMail(): JsonResponse
     {
         $this->redis->del($_ENV['REDIS_PREFIX'] . 'gmail_token');

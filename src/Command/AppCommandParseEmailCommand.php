@@ -3,6 +3,8 @@
 namespace App\Command;
 
 use App\Controller\GMailController;
+use App\Service\MailService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,9 +20,12 @@ use Symfony\Component\HttpFoundation\Request;
 )]
 class AppCommandParseEmailCommand extends Command
 {
-    public function __construct()
+    private EntityManagerInterface $entityManager;
+
+    public function __construct(EntityManagerInterface $entityManager)
     {
         parent::__construct();
+        $this->entityManager = $entityManager;
     }
 
     protected function configure(): void
@@ -40,7 +45,7 @@ class AppCommandParseEmailCommand extends Command
             $mailsList = array_filter(json_decode(
                 $controller->getMails(new Request([]))->getContent(),
                 true
-            )['data_list']['messages'] ?? [], fn($mail) => strtotime($mail['date']) > (time() - 60));
+            )['data_list']['messages'] ?? [], fn($mail) => strtotime($mail['date']) > (time() - 3600));
 
             foreach ($mailsList as &$email) {
                 try {
@@ -54,7 +59,9 @@ class AppCommandParseEmailCommand extends Command
                         $request->server->all(),
                         ['email_id' => $email['id']]
                     );
-                    $email = json_decode($controller->getMailDetails($request)->getContent(), true)['data_list']['message'];
+                    $email = json_decode($controller->getMailDetails($request)->getContent())->data_list->message;
+                    $email->date = new \DateTime($email->date);
+                    $io->note(json_encode($email));
                 } catch (\Exception $e) {
                     var_dump($e->getMessage());
                     die;
@@ -65,6 +72,9 @@ class AppCommandParseEmailCommand extends Command
             //HERE WE CAN DO ANYTHING WITH $mailsList
             //$mailsList[X]['body'] - body of email
             $io->note(count($mailsList));
+            foreach($mailsList as $email){
+                new MailService($email, $this->entityManager);
+            }
         } catch (\Doctrine\DBAL\Exception|Exception|\Exception $e) {
             $io->note($e->getMessage());
         }
