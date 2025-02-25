@@ -280,6 +280,9 @@ class OneRecordController extends AbstractController
                 return $this->json(['error' => 'Invalid JSON'], 400);
             }
 
+            var_dump($lo_path);
+            var_dump($data);
+
             $le = new LogisticsEvent();
             $le->setCreationDate(new \DateTime($data['creationDate']));
             $le->setEventCode($data['eventCode']);
@@ -290,6 +293,8 @@ class OneRecordController extends AbstractController
             $le->setEventFor($logisticsObject);
             $this->entityManager->persist($le);
             $this->entityManager->flush();
+
+
 
             return new JsonResponse(
                 null,
