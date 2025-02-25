@@ -54,8 +54,7 @@ EOT;
           "recordingOrganization": "https://ordub.awery.com.ua/",
           "creationDate": "$dateCreateStr",
           "eventDate": "$dateEventStr",
-          "eventName": "BOOKED (The consignment has been booked for transport)",
-          "partialEventIndicator": true
+          "eventName": "BOOKED (The consignment has been booked for transport)"
         }
         JSON;
 
@@ -161,7 +160,7 @@ EOT;
             $objectType = $requestData['api:hasLogisticsObjectType']['@value'];
         }
 
-        if (!empty($objectType) && !empty($logisticsObjectUrl) && $objectType === 'cargo#Waybill') {
+        if (!empty($objectType) && !empty($logisticsObjectUrl)) {
             $OneRecordCreatorController = new OneRecordCreatorController($this->serializer, $this->em);
             $OneRecordCreatorController->createAwb($logisticsObjectUrl);
         }
