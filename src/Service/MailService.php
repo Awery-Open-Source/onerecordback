@@ -78,7 +78,7 @@ class MailService
 
         $statusDescr = FSUMessageService::getDescOfStatus($fsuMessage->status);
 
-        $domain = getenv('DOMAIN', 'https://ordub.awery.com.ua/');
+        $domain = getenv('DOMAIN', 'https://phpone.awery.aero/');
         $enum = \App\Entity\Cargo\Enum\EventTimeType::ACTUAL;
         $eventJson = <<<JSON
         {
@@ -101,25 +101,29 @@ class MailService
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
+            CURLOPT_HEADER => 1,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS =>$eventJson,
+            CURLOPT_POSTFIELDS => $eventJson,
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/ld+json',
                 'Accept: application/ld+json'
             ),
         ));
 
-        $response = json_decode(curl_exec($curl));
-
-        $headers = $this->getHeaders($response);
+        $response = curl_exec($curl);
+        $header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+        $http_body = substr($response, $header_size);
+        $header = substr($response, 0, $header_size);
+        $response = json_decode($http_body, true);
+        $headers = $this->getHeaders($header);
 
         $event->one_record_id = $headers['Location']??null;
 
         $this->entityManager->flush();
-
+        return $response;
     }
 
     private function getHeaders($response): array

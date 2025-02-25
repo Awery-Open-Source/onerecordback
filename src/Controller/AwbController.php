@@ -341,6 +341,7 @@ class AwbController extends AbstractController
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
+            CURLOPT_HEADER => 1,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
@@ -352,9 +353,12 @@ class AwbController extends AbstractController
             ),
         ));
 //
-        $response = json_decode(curl_exec($curl));
-
-        $headers = $this->getHeaders($response);
+        $response = curl_exec($curl);
+        $header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+        $http_body = substr($response, $header_size);
+        $header = substr($response, 0, $header_size);
+        $response = json_decode($http_body, true);
+        $headers = $this->getHeaders($header);
 
         $fsuMessage->one_record_id = $headers['Location']??null;
         $this->em->flush();
