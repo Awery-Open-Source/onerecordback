@@ -29,7 +29,7 @@ class OneRecordCreatorController extends AbstractController
     public function createAwb($waybillUrl= null): Response
     {
 
-        $waybillUrl = "https://ordub.awery.com.ua/logistic-objects/01953a07-8e10-7380-882b-ba964949a8cf";
+//        $waybillUrl = "https://ordub.awery.com.ua/logistic-objects/01953a07-8e10-7380-882b-ba964949a8cf";
 
         $curl = curl_init();
         curl_setopt_array($curl, array(
