@@ -285,12 +285,13 @@ class AwbController extends AbstractController
         $awb = $this->em->getRepository(Awb::class)->find($fsuMessage->awb_id);
         $redServer = getenv('RED_SERVER', 'https://red.awery.com.ua');
         $eventName = FSUMessageService::getDescOfStatus($fsuMessage->type) ?? 'Unknown';
+        $enum = \App\Entity\Cargo\Enum\EventTimeType::ACTUAL;
         $eventJson = <<<JSON
         {
           "eventCode": "$fsuMessage->type",
           "eventFor": "$awb->one_record_url",
           "eventLocation": "$fsuMessage->location",
-          "eventTimeType": "$fsuMessage->type",
+          "eventTimeType": "ACTUAL",
           "recordingOrganization": "$redServer",
           "creationDate": "$fsuMessage->dateCreate",
           "eventDate": "$fsuMessage->dateAction",

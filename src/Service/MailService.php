@@ -79,13 +79,13 @@ class MailService
         $statusDescr = FSUMessageService::getDescOfStatus($fsuMessage->status);
 
         $domain = getenv('DOMAIN', 'https://ordub.awery.com.ua/');
-
+        $enum = \App\Entity\Cargo\Enum\EventTimeType::ACTUAL;
         $eventJson = <<<JSON
         {
           "eventCode": "$event->type",
           "eventFor": "$eventFor",
           "eventLocation": "$event->location",
-          "eventTimeType": "$fsuMessage->status",
+          "eventTimeType": "ACTUAL",
           "recordingOrganization": "$domain",
           "creationDate": "$dateCreateStr",
           "eventDate": "$dateEventStr",
