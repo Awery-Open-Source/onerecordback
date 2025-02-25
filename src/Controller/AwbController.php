@@ -178,7 +178,7 @@ class AwbController extends AbstractController
         {
           "eventCode": "$fsuMessage->type",
           "eventFor": "$awb->one_record_url",
-          "eventLocation": "$fsuMessage->flight->origin",
+          "eventLocation": "$fsuMessage->location",
           "eventTimeType": "$fsuMessage->type",
           "recordingOrganization": "$redServer",
           "creationDate": "$fsuMessage->dateCreate",
