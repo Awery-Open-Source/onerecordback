@@ -349,6 +349,7 @@ class AwbController extends AbstractController
     private function getHeaders($response): array
     {
         $headers = array();
+        if (!is_string($response)) return $headers;
         $header_text = substr($response, 0, strpos($response, "\r\n\r\n"));
         foreach (explode("\r\n", $header_text) as $i => $line) {
             if ($i === 0) {
