@@ -20,15 +20,18 @@ class MailService
 
     public function storeMessage()
     {
-        $this->message->thread_id = $this->message->id ?? null;
+        $this->message->message_id = $this->message->id ?? null;
         unset($this->message->id);
 
         $event = new Event();
         foreach ($this->message as $key => $value) {
-            $event->{$key} = $value;
+//            if ($key == 'short') continue;
+            if (property_exists($event, $key)) {
+                $event->{$key} = $value;
+            }
         }
-        $this->entityManager->persist($event);
-        $this->entityManager->flush();
+//        $this->entityManager->persist($event);
+//        $this->entityManager->flush();
 
         $fsuMessage = new FSUMessageService($event->body);
 
@@ -46,14 +49,30 @@ class MailService
             return;
         }
 
-        $event = $this->entityManager->getRepository(Event::class);
+//        $event = new Event();
+//        $event->one_record_id = '';
 
         foreach ($fsuMessage->getParsedData() as $key => $value) {
-            $event->{$key} = $value;
+            if ($key == 'dateAction') {
+                $event->dateAction = $dateEvent;
+                continue;
+            }
+            if (property_exists($event, $key)) {
+                $event->{$key} = $value;
+            }
         }
-
+        $event->awb_id = $entity->id;
+        $event->dateCreate =new \DateTime();
+//        var_dump($event);
         $this->entityManager->persist($event);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            var_dump($e->getMessage());
+            var_dump($event->getId());
+        }
+//        $this->entityManager->persist($event);
+//        $this->entityManager->flush();
 
         $eventFor = $entity->one_record_url;
 

@@ -51,16 +51,13 @@ class Event
     public ?string $text = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    public ?string $from = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
     public ?string $from_name = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     public ?string $from_email = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    public ?string $to = null;
+    public ?string $to_email = null;
 
     #[ORM\Column(type: Types::TEXT)]
     public ?string $body = null;
