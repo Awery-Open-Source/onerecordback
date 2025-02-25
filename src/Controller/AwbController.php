@@ -144,7 +144,7 @@ class AwbController extends AbstractController
 
         $lo_path = 'http://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
 
-        $send_obj = new stdClass();
+        $send_obj = new \stdClass();
         $send_obj->{'@context'} = (object) ['api' => 'https://onerecord.iata.org/ns/api#'];
         $send_obj->{'@type'} = 'api:Notification';
         $send_obj->{'api:hasEventType'} = (object) ['@id' => 'api:LOGISTICS_OBJECT_CREATED'];
@@ -176,7 +176,7 @@ class AwbController extends AbstractController
         $response = curl_exec($curl);
         curl_close($curl);
 
-        return new JsonResponse(['status' => 'success', 'id' => $id, 'logistics_object_id' => $waybill->getId()]);
+        return new JsonResponse(['status' => 'success', 'id' => $id, 'logistics_object_id' => $waybill->getId(), 'res' => $response]);
     }
 
     /**
