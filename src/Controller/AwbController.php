@@ -205,9 +205,11 @@ class AwbController extends AbstractController
             throw new Exception('Invalid request');
         }
 
+        $url = explode('/', $awb->one_record_url);
         $pieces = $this->em->getRepository(PieceAwb::class)->findBy(['awb_id' => $awb->getId()]);
         $events = $this->em->getRepository(Event::class)->findBy(['awb_id' => $awb->getId()]);
-        return new JsonResponse(['status' => 'success', 'awb' => $awb, 'pieces' => $pieces, 'events' => $events]);
+        $events1r = array_map(fn($e)=>(array)$e, $this->em->getRepository(LogisticsEvent::class)->findBy(['eventFor' => end($url)]));
+        return new JsonResponse(['status' => 'success', 'awb' => $awb, 'pieces' => $pieces, 'events' => $events, 'events1r' => $events1r]);
     }
 
     #[Route('/api/getPieces', name: 'api_get_pieces', methods: ['GET'])]
