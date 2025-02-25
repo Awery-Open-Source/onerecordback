@@ -2,6 +2,7 @@
 namespace App\Controller;
 
 use App\Entity\Awb;
+use App\Entity\Cargo\Abstract\LogisticsObject;
 use App\Entity\Cargo\Common\Location;
 use App\Entity\Cargo\Core\Piece;
 use App\Entity\Cargo\Core\Shipment;
@@ -18,6 +19,7 @@ use DateMalformedStringException;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
+use stdClass;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -235,7 +237,6 @@ class AwbController extends AbstractController
     {
         $requestData = json_decode($request->getContent(), true);
         $Event = new Event();
-
         foreach ($requestData as $key => $value) {
             $Event->{$key} = str_starts_with($key, 'date') ? new DateTime($value) : $value;
         }
@@ -246,7 +247,23 @@ class AwbController extends AbstractController
         }catch (Exception $e){
             return new JsonResponse(['status' => 'error', 'message' => $e->getMessage()]);
         }
+        $awb = $this->em->getRepository(Awb::class)->find($requestData['awb_id']);
+        $tmp = explode('/', $awb->one_record_url);
+        $waybill = $this->em->getRepository(LogisticsObject::class)->find(end($tmp));
 
+
+        $le = new LogisticsEvent();
+        $le->setCreationDate(new \DateTime($requestData['dateCreate']));
+        $le->setEventCode($requestData['type']);
+
+        $le->setEventDate(new \DateTime($requestData['dateAction']));
+        $le->setEventName('Update');
+        $le->setEventTimeType(EventTimeType::ACTUAL);
+//
+        $le->setEventFor($waybill);
+        $this->em->persist($le);
+        $this->em->flush();
+//        dump($lo_url);die;
         $this->sendToRed($id);
 
         return new JsonResponse(['id'=>$id, 'status' => 'success']);

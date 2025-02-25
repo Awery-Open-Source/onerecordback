@@ -290,6 +290,7 @@ class OneRecordController extends AbstractController
             $le->setEventFor($logisticsObject);
             $this->entityManager->persist($le);
             $this->entityManager->flush();
+
             return new JsonResponse(
                 null,
                 JsonResponse::HTTP_CREATED, // 201 Created
