@@ -154,9 +154,9 @@ class FSUMessageService
         $totalPieces = $awb->total_pieces??1;
         $dateAction = $event->dateAction->format('dMHi');
         return <<<EOT
-FSU/12
-{$awb->awb_no}{$awb->origin}{$awb->destination}/T$totalPieces}K{$awb->weight}
-{$event->type}/{$dateAction}/{$event->location}/T{$event->qty}K{$event->weight}/$event->text}
+FSU/12<br>
+{$awb->awb_no}{$awb->origin}{$awb->destination}/T{$totalPieces}K{$awb->weight}<br>
+{$event->type}/{$dateAction}/{$event->location}/T{$event->qty}K{$event->weight}/{$event->text}
 EOT;
     }
 }

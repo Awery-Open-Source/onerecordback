@@ -289,10 +289,10 @@ class AwbController extends AbstractController
         $this->em->flush();
 //        dump($lo_url);die;
 //        $this->sendToRed($id);
-        $this->sendToSubscribers($id);
+        $subscriptions = $this->sendToSubscribers($id);
         $lo_path = 'https://'.$_SERVER['HTTP_HOST'].'/logistic-objects/';
 //        dump($tmp);die;
-        return new JsonResponse(['id'=>$id, 'status' => 'success'],JsonResponse::HTTP_CREATED, // 201 Created
+        return new JsonResponse(['id'=>$id, 'status' => 'success', 's' => $subscriptions],JsonResponse::HTTP_CREATED, // 201 Created
                 [
                     'Location' => $lo_path.end($tmp).'/logistics-events/'.$le->getId(),
                     'Content-Type' => 'application/ld+json; version=2.1.0',
@@ -306,22 +306,26 @@ class AwbController extends AbstractController
             return false;
         }
 
-        $query = $this->em->createQuery(
-            'SELECT email FROM settings WHERE email IS NOT NULL'
-        );
-        $usersWithEmail = $query->getResult();
+        $subscriptions = $this->em->getRepository(Settings::class)
+            ->createQueryBuilder('s')
+            ->where('s.email IS NOT NULL')
+            ->andWhere('s.email != :empty')
+            ->setParameter('empty', '')
+            ->getQuery()
+            ->getResult();
 
         $message = FSUMessageService::generateFsu($id_event, $this->em);
 
-        foreach ($usersWithEmail as $user){
+        foreach ($subscriptions as $user){
             $email = (new Email())
                 ->from('noreply@awery.aero')
-                ->to($user)
+                ->to($user->email)
                 ->subject('FSU Message')
                 ->html($message);
             $this->mailer->send($email);
         }
 
+        return $message;
     }
 
     public function sendToRed($id_fsu_message = 0)
