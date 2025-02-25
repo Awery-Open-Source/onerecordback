@@ -14,6 +14,7 @@ use App\Entity\Cargo\Event\LogisticsEvent;
 use App\Entity\CoreCodeLists\MeasurementUnitCode;
 use App\Entity\Event;
 use App\Entity\PieceAwb;
+use App\Entity\Settings;
 use App\Service\FSUMessageService;
 use DateMalformedStringException;
 use DateTime;
@@ -155,30 +156,38 @@ class AwbController extends AbstractController
             '@type' => 'http://www.w3.org/2001/XMLSchema#anyURI',
             '@value' => 'https://onerecord.iata.org/ns/cargo#Shipment'
         ];
-        $remote_url = 'https://phpanotherone.awery.aero/api/update';
 
+        $subscriptions = $this->em->getRepository(Settings::class)
+            ->createQueryBuilder('s')
+            ->where('s.token IS NOT NULL')
+            ->andWhere('s.token != :empty')
+            ->setParameter('empty', '')
+            ->getQuery()
+            ->getResult();
 
         $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $remote_url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($send_obj),
-            CURLOPT_HTTPHEADER => array(
-                'token: 84b8629b37fab5cb474c074d389539f86b91823a24785ba739a19b5c75eb8d20',
-                'Content-Type: application/json',
-            ),
-        ));
-        $response = curl_exec($curl);
+        foreach ($subscriptions as $subscription) {
+            $remote_url = $subscription->base_url . '/api/update';
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => $remote_url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => json_encode($send_obj),
+                CURLOPT_HTTPHEADER => array(
+                    'token: ' . $subscription->token,
+                    'Content-Type: application/json',
+                ),
+            ));
+            curl_exec($curl);
+        }
         curl_close($curl);
 
-        return new JsonResponse(['status' => 'success', 'id' => $id, 'logistics_object_id' => $waybill->getId(), 'res' => $response]);
+        return new JsonResponse(['status' => 'success', 'id' => $id, 'logistics_object_id' => $waybill->getId(), 'sub' => $subscriptions]);
     }
 
     /**
