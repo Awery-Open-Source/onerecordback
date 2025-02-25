@@ -49,7 +49,6 @@ class OneRecordCreatorController extends AbstractController
         ));
 
         $response = json_decode(curl_exec($curl), true);
-//        return new JsonResponse($response);
         $awb = new \stdClass();
 
 

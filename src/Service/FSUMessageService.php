@@ -65,17 +65,12 @@ class FSUMessageService
 
         preg_match($pattern, $awbLine, $result);
 
-        $awb = [
-            'awb_no' => $result['awb_no'],
-            'origin' => $result['origin'],
-            'dest' => $result['dest'],
-            'shipment_description_code' => $result['shipment_description_code'],
-            'total_pieces' => $result['total_pieces']
-        ];
+        $this->parsedData['awb_no'] = $result['awb_no'];
+        $this->parsedData['origin'] = $result['origin'];
+        $this->parsedData['dest'] = $result['dest'];
+        $this->parsedData['shipment_description_code'] = $result['shipment_description_code'];
+        $this->parsedData['total_pieces'] = $result['total_pieces'];
 
-        $this->parsedData['awb'] = $awb;
-
-        $this->awb = (object)$awb;
     }
 
     protected function parseStatusDetails()
@@ -84,31 +79,20 @@ class FSUMessageService
             $this->status = $this->parsedData['status']['status'];
         }
 
-        $pattern = '~^(?<call_sign>[^/]+)?/(?<flight_date>\d{2}[A-Z]{3})?/(?<origin>[A-Z]{3})(?<dest>[A-Z]{3})/(?<shipment_description_code>[T|P])(?<pcs>\d+)(?<weight_unit>[K|L])(?<weight>[0-9\.]+)(/(?<departure_time_type>[AES])(?<departure_time>\d{4})\-?(?<departure_day_mark>[PNST])?)?(/(?<arrival_time_type>[AES])(?<arrival_time>\d{4})\-?(?<arrival_day_mark>[PNST])?)?(?<more_info>.*)?~';
+        $pattern = '~^(?<dateAction>\d{2}[A-Z]{3}\d{4})?/(?<location>[A-Z]{3})/(?<shipment_description_code>[T|P])(?<qty>\d+)(?<weight_unit>[K|L])(?<weight>[0-9\.]+)(?<departure_time_type>[AES])?/(?<text>.*)?~';
         $statusLine = $this->parsedData['status']['content'];
 
         preg_match($pattern, $statusLine, $result);
 
-        $flight = [
-            'call_sign' => $result['call_sign'],
-            'flight_date' => $result['flight_date'],
-            'origin' => $result['origin'],
-            'dest' => $result['dest'],
-            'shipment_description_code' => $result['shipment_description_code'],
-            'pcs' => $result['pcs'],
-            'weight_unit' => $result['weight_unit'],
-            'weight' => $result['weight'],
-            'departure_time_type' => $result['departure_time_type'],
-            'departure_time' => $result['departure_time'],
-            'departure_day_mark' => $result['departure_day_mark'],
-            'arrival_time_type' => $result['arrival_time_type'],
-            'arrival_time' => $result['arrival_time'],
-            'arrival_day_mark' => $result['arrival_day_mark'],
-        ];
-
-        $this->parsedData['flight'] = $flight;
-
-        $this->flight = (object)$flight;
+        $this->parsedData['dateAction'] = $result['dateAction'];
+        $this->parsedData['location'] = $result['location'];
+        $this->parsedData['shipment_description_code'] = $result['shipment_description_code'];
+        $this->parsedData['weight_unit'] = $result['weight_unit'];
+        $this->parsedData['weight'] = $result['weight'];
+        $this->parsedData['departure_time_type'] = $result['departure_time_type'];
+        $this->parsedData['text'] = $result['text'];
+        $this->parsedData['qty'] = $result['qty'];
+        $this->parsedData['type'] = $this->parsedData['status']['status'];
     }
 
     /**
@@ -167,7 +151,7 @@ class FSUMessageService
     {
         $event = $entityManager->getRepository(Event::class)->find($event_id);
         $awb = $entityManager->getRepository(Awb::class)->find($event->awb_id);
-        $totalPieces = $awb->total_pieces??0;//todo calculate total pieces
+        $totalPieces = $awb->total_pieces??1;
         $dateAction = $event->dateAction->format('dMHi');
         return <<<EOT
 FSU/12

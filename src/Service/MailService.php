@@ -35,38 +35,46 @@ class MailService
         $dateCreate = new \DateTime();
         $dateCreateStr = $dateCreate->format('Y-m-d\TH:i:s.v\Z');
 
-        $dateEvent = \DateTime::createFromFormat('dMHi', $fsuMessage->flight->flight_date.$fsuMessage->flight->departure_time);
+        $dateEvent = \DateTime::createFromFormat('dMHi', $fsuMessage->getParsedData()['dateAction']);
         $dateEventStr = $dateEvent->format('Y-m-d\TH:i:s.v\Z');
-
-        $origin = $fsuMessage->flight->origin;
 
         $repository = $this->entityManager->getRepository(Awb::class);
 
-        $entity = $repository->findOneBy(['awb_no' => $fsuMessage->awb->awb_no]);
+        $entity = $repository->findOneBy(['awb_no' => $fsuMessage->getParsedData()['awb_no']]);
 
         if (empty($entity)) {
             return;
         }
 
+        $event = $this->entityManager->getRepository(Event::class);
+
+        foreach ($fsuMessage->getParsedData() as $key => $value) {
+            $event->{$key} = $value;
+        }
+
+        $this->entityManager->persist($event);
+        $this->entityManager->flush();
+
         $eventFor = $entity->one_record_url;
 
         $statusDescr = FSUMessageService::getDescOfStatus($fsuMessage->status);
 
+        $domain = getenv('DOMAIN', 'https://ordub.awery.com.ua/');
+
         $eventJson = <<<JSON
         {
-          "eventCode": "$fsuMessage->status",
+          "eventCode": "$event->type",
           "eventFor": "$eventFor",
-          "eventLocation": "$origin",
+          "eventLocation": "$event->location",
           "eventTimeType": "$fsuMessage->status",
-          "recordingOrganization": "https://ordub.awery.com.ua/",
+          "recordingOrganization": "$domain",
           "creationDate": "$dateCreateStr",
           "eventDate": "$dateEventStr",
-          "eventName": "$statusDescr",
-          "partialEventIndicator": true
+          "eventName": "$statusDescr"
         }
         JSON;
 
-        $url = $eventFor."/logistics-event";
+        $url = $eventFor."/logistics-events";
 
         $curl = curl_init();
         curl_setopt_array($curl, array(
