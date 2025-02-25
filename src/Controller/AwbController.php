@@ -263,6 +263,12 @@ class AwbController extends AbstractController
         $le->setEventFor($waybill);
         $this->em->persist($le);
         $this->em->flush();
+        $location = new Location();
+        $location->setLocationName($requestData['location']);
+        $location->setLocationType('airport');
+        $this->em->persist($location);
+        $le->setEventLocation($location);
+        $this->em->flush();
 //        dump($lo_url);die;
         $this->sendToRed($id);
 
