@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class FsuController extends AbstractController
 {
-    public function __construct(EntityManagerInterface $em,SerializerInterface $serializer)
+    public function __construct(SerializerInterface $serializer,EntityManagerInterface $em)
     {
         $this->serializer = $serializer;
 //        $this->normalizer = $normalizer;
